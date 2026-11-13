@@ -1,0 +1,415 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Calculator API",
+    "version": "1.0.0",
+    "description": "Exact arithmetic on decimal strings of up to 1,000 digits. All numbers travel as JSON strings, so no precision is lost. Every result is rounded to 10 decimal places, and `rounded` says whether that changed the exact answer. Every error has the same shape: `{code, message, field?}`. Rule of thumb: 400 means the request breaks the API's rules; 422 means the request is valid but the maths has no answer."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "tags": [
+    {
+      "name": "calculator"
+    },
+    {
+      "name": "health"
+    }
+  ],
+  "paths": {
+    "/api/v1/calculate": {
+      "post": {
+        "tags": [
+          "calculator"
+        ],
+        "summary": "Perform one calculation",
+        "description": "One operation per request. For `sqrt`, `number2` is ignored. Chained input (2 + 3 + 4) is sent as separate requests, each result becoming the next `number1`.",
+        "operationId": "calculate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalculateRequest"
+              },
+              "examples": {
+                "divide": {
+                  "summary": "1 ÷ 3",
+                  "value": {
+                    "number1": "1",
+                    "operation": "divide",
+                    "number2": "3"
+                  }
+                },
+                "multiply": {
+                  "summary": "Beyond float64 precision",
+                  "value": {
+                    "number1": "99999999999999999999",
+                    "operation": "multiply",
+                    "number2": "99999999999999999999"
+                  }
+                },
+                "power": {
+                  "summary": "2 ^ 100",
+                  "value": {
+                    "number1": "2",
+                    "operation": "power",
+                    "number2": "100"
+                  }
+                },
+                "sqrt": {
+                  "summary": "√2 (number2 not needed)",
+                  "value": {
+                    "number1": "2",
+                    "operation": "sqrt"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The result, rounded to 10 decimal places.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalculateResponse"
+                },
+                "examples": {
+                  "exact": {
+                    "summary": "12 ÷ 4",
+                    "value": {
+                      "result": "3",
+                      "rounded": false
+                    }
+                  },
+                  "rounded": {
+                    "summary": "1 ÷ 3",
+                    "value": {
+                      "result": "0.3333333333",
+                      "rounded": true
+                    }
+                  },
+                  "large": {
+                    "summary": "99999999999999999999 × 99999999999999999999",
+                    "value": {
+                      "result": "9999999999999999999800000000000000000001",
+                      "rounded": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request breaks the API's rules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "INVALID_NUMBER": {
+                    "value": {
+                      "code": "INVALID_NUMBER",
+                      "message": "First number must be a plain decimal number, like 12 or -3.5.",
+                      "field": "number1"
+                    }
+                  },
+                  "INVALID_NUMBER_missing": {
+                    "summary": "INVALID_NUMBER (missing)",
+                    "value": {
+                      "code": "INVALID_NUMBER",
+                      "message": "Second number is required.",
+                      "field": "number2"
+                    }
+                  },
+                  "NUMBER_TOO_LONG": {
+                    "value": {
+                      "code": "NUMBER_TOO_LONG",
+                      "message": "First number can have at most 1000 digits.",
+                      "field": "number1"
+                    }
+                  },
+                  "UNKNOWN_OPERATION": {
+                    "value": {
+                      "code": "UNKNOWN_OPERATION",
+                      "message": "Operation must be one of: add, subtract, multiply, divide, power, sqrt.",
+                      "field": "operation"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "number1 must be a string.",
+                      "field": "number1"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Wrong method for this path. The `Allow` header lists the right one.",
+            "headers": {
+              "Allow": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "POST"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "METHOD_NOT_ALLOWED",
+                  "message": "Method GET is not allowed here. Allowed: POST."
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The request body is over 16 KB.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "REQUEST_TOO_LARGE": {
+                    "value": {
+                      "code": "REQUEST_TOO_LARGE",
+                      "message": "Request body must be at most 16384 bytes."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The request is valid, but the maths has no answer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "DIVISION_BY_ZERO": {
+                    "value": {
+                      "code": "DIVISION_BY_ZERO",
+                      "message": "Division by zero is not permitted.",
+                      "field": "number2"
+                    }
+                  },
+                  "NEGATIVE_SQUARE_ROOT": {
+                    "value": {
+                      "code": "NEGATIVE_SQUARE_ROOT",
+                      "message": "Cannot take the square root of a negative number.",
+                      "field": "number1"
+                    }
+                  },
+                  "NON_INTEGER_EXPONENT": {
+                    "value": {
+                      "code": "NON_INTEGER_EXPONENT",
+                      "message": "The exponent must be a whole number.",
+                      "field": "number2"
+                    }
+                  },
+                  "RESULT_TOO_LARGE": {
+                    "value": {
+                      "code": "RESULT_TOO_LARGE",
+                      "message": "The result would be too large (over 10000 digits)."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected failure. Details are logged, never returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "INTERNAL_ERROR": {
+                    "value": {
+                      "code": "INTERNAL_ERROR",
+                      "message": "Something went wrong. Please try again."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Check that the server is up",
+        "description": "Unversioned, because it describes the server rather than the calculator contract. Also answers HEAD.",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "The server is running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Wrong method for this path. The `Allow` header lists the right one.",
+            "headers": {
+              "Allow": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "GET, HEAD"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "METHOD_NOT_ALLOWED",
+                  "message": "Method GET is not allowed here. Allowed: GET, HEAD."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CalculateRequest": {
+        "type": "object",
+        "required": [
+          "number1",
+          "operation"
+        ],
+        "properties": {
+          "number1": {
+            "$ref": "#/components/schemas/Number"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "add",
+              "subtract",
+              "multiply",
+              "divide",
+              "power",
+              "sqrt"
+            ]
+          },
+          "number2": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Number"
+              }
+            ],
+            "description": "Required for every operation except `sqrt`, where it is ignored. For `power` it must be a whole number (negative allowed); powers whose result would exceed about 10,000 digits are rejected."
+          }
+        }
+      },
+      "Number": {
+        "type": "string",
+        "description": "A plain decimal: optional `-`, digits, optional `.digits`. No `+`, `1e5`, `.5`, `5.`, commas or spaces. At most 1,000 digits (the sign and decimal point don't count).",
+        "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+        "examples": [
+          "12",
+          "-3.5"
+        ]
+      },
+      "CalculateResponse": {
+        "type": "object",
+        "required": [
+          "result",
+          "rounded"
+        ],
+        "properties": {
+          "result": {
+            "type": "string",
+            "description": "Plain decimal string with at most 10 decimal places and no trailing zeros.",
+            "examples": [
+              "0.3333333333"
+            ]
+          },
+          "rounded": {
+            "type": "boolean",
+            "description": "True when the exact answer had more than 10 decimal places."
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "INVALID_NUMBER",
+              "NUMBER_TOO_LONG",
+              "UNKNOWN_OPERATION",
+              "INVALID_REQUEST",
+              "REQUEST_TOO_LARGE",
+              "DIVISION_BY_ZERO",
+              "NEGATIVE_SQUARE_ROOT",
+              "NON_INTEGER_EXPONENT",
+              "RESULT_TOO_LARGE",
+              "NOT_FOUND",
+              "METHOD_NOT_ALLOWED",
+              "INTERNAL_ERROR"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "User-facing text, safe to show as-is."
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "number1",
+              "number2",
+              "operation"
+            ],
+            "description": "The input at fault, when there is one."
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok"
+          }
+        }
+      }
+    }
+  }
+}

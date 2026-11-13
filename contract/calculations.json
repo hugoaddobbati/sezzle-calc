@@ -1,0 +1,488 @@
+{
+  "description": "Shared API contract for POST /api/v1/calculate. The Go API tests send every request and expect exactly this status and response. The frontend tests check that its validation returns the same error (or none) for every case not marked backendOnly, and that its API client reads every response correctly. Change a rule or message here, and both test suites must agree.",
+  "cases": [
+    {
+      "name": "add",
+      "request": {
+        "number1": "1",
+        "operation": "add",
+        "number2": "2"
+      },
+      "status": 200,
+      "response": {
+        "result": "3",
+        "rounded": false
+      }
+    },
+    {
+      "name": "add decimals exactly",
+      "request": {
+        "number1": "0.1",
+        "operation": "add",
+        "number2": "0.2"
+      },
+      "status": 200,
+      "response": {
+        "result": "0.3",
+        "rounded": false
+      }
+    },
+    {
+      "name": "subtract to negative",
+      "request": {
+        "number1": "5",
+        "operation": "subtract",
+        "number2": "8"
+      },
+      "status": 200,
+      "response": {
+        "result": "-3",
+        "rounded": false
+      }
+    },
+    {
+      "name": "multiply beyond float64 precision",
+      "request": {
+        "number1": "99999999999999999999",
+        "operation": "multiply",
+        "number2": "99999999999999999999"
+      },
+      "status": 200,
+      "response": {
+        "result": "9999999999999999999800000000000000000001",
+        "rounded": false
+      }
+    },
+    {
+      "name": "divide",
+      "request": {
+        "number1": "12",
+        "operation": "divide",
+        "number2": "4"
+      },
+      "status": 200,
+      "response": {
+        "result": "3",
+        "rounded": false
+      }
+    },
+    {
+      "name": "divide terminating",
+      "request": {
+        "number1": "1",
+        "operation": "divide",
+        "number2": "8"
+      },
+      "status": 200,
+      "response": {
+        "result": "0.125",
+        "rounded": false
+      }
+    },
+    {
+      "name": "divide rounded down",
+      "request": {
+        "number1": "1",
+        "operation": "divide",
+        "number2": "3"
+      },
+      "status": 200,
+      "response": {
+        "result": "0.3333333333",
+        "rounded": true
+      }
+    },
+    {
+      "name": "divide rounded up",
+      "request": {
+        "number1": "2",
+        "operation": "divide",
+        "number2": "3"
+      },
+      "status": 200,
+      "response": {
+        "result": "0.6666666667",
+        "rounded": true
+      }
+    },
+    {
+      "name": "chain continues from the rounded value",
+      "request": {
+        "number1": "0.3333333333",
+        "operation": "multiply",
+        "number2": "3"
+      },
+      "status": 200,
+      "response": {
+        "result": "0.9999999999",
+        "rounded": false
+      }
+    },
+    {
+      "name": "power",
+      "request": {
+        "number1": "2",
+        "operation": "power",
+        "number2": "10"
+      },
+      "status": 200,
+      "response": {
+        "result": "1024",
+        "rounded": false
+      }
+    },
+    {
+      "name": "power negative exponent",
+      "request": {
+        "number1": "2",
+        "operation": "power",
+        "number2": "-3"
+      },
+      "status": 200,
+      "response": {
+        "result": "0.125",
+        "rounded": false
+      }
+    },
+    {
+      "name": "power exponent written as decimal",
+      "request": {
+        "number1": "2",
+        "operation": "power",
+        "number2": "2.0"
+      },
+      "status": 200,
+      "response": {
+        "result": "4",
+        "rounded": false
+      }
+    },
+    {
+      "name": "power zero to zero",
+      "request": {
+        "number1": "0",
+        "operation": "power",
+        "number2": "0"
+      },
+      "status": 200,
+      "response": {
+        "result": "1",
+        "rounded": false
+      }
+    },
+    {
+      "name": "square root",
+      "request": {
+        "number1": "16",
+        "operation": "sqrt"
+      },
+      "status": 200,
+      "response": {
+        "result": "4",
+        "rounded": false
+      }
+    },
+    {
+      "name": "square root rounded",
+      "request": {
+        "number1": "2",
+        "operation": "sqrt"
+      },
+      "status": 200,
+      "response": {
+        "result": "1.4142135624",
+        "rounded": true
+      }
+    },
+    {
+      "name": "square root ignores number2",
+      "request": {
+        "number1": "9",
+        "operation": "sqrt",
+        "number2": "not a number"
+      },
+      "status": 200,
+      "response": {
+        "result": "3",
+        "rounded": false
+      }
+    },
+    {
+      "name": "square root of negative zero",
+      "request": {
+        "number1": "-0",
+        "operation": "sqrt"
+      },
+      "status": 200,
+      "response": {
+        "result": "0",
+        "rounded": false
+      }
+    },
+    {
+      "name": "missing number1",
+      "request": {
+        "number1": "",
+        "operation": "add",
+        "number2": "2"
+      },
+      "status": 400,
+      "response": {
+        "code": "INVALID_NUMBER",
+        "message": "First number is required.",
+        "field": "number1"
+      }
+    },
+    {
+      "name": "missing number2",
+      "request": {
+        "number1": "1",
+        "operation": "add"
+      },
+      "status": 400,
+      "response": {
+        "code": "INVALID_NUMBER",
+        "message": "Second number is required.",
+        "field": "number2"
+      }
+    },
+    {
+      "name": "letters",
+      "request": {
+        "number1": "abc",
+        "operation": "add",
+        "number2": "2"
+      },
+      "status": 400,
+      "response": {
+        "code": "INVALID_NUMBER",
+        "message": "First number must be a plain decimal number, like 12 or -3.5.",
+        "field": "number1"
+      }
+    },
+    {
+      "name": "scientific notation",
+      "request": {
+        "number1": "1e5",
+        "operation": "add",
+        "number2": "2"
+      },
+      "status": 400,
+      "response": {
+        "code": "INVALID_NUMBER",
+        "message": "First number must be a plain decimal number, like 12 or -3.5.",
+        "field": "number1"
+      }
+    },
+    {
+      "name": "leading dot",
+      "request": {
+        "number1": ".5",
+        "operation": "add",
+        "number2": "2"
+      },
+      "status": 400,
+      "response": {
+        "code": "INVALID_NUMBER",
+        "message": "First number must be a plain decimal number, like 12 or -3.5.",
+        "field": "number1"
+      }
+    },
+    {
+      "name": "trailing dot",
+      "request": {
+        "number1": "5.",
+        "operation": "add",
+        "number2": "2"
+      },
+      "status": 400,
+      "response": {
+        "code": "INVALID_NUMBER",
+        "message": "First number must be a plain decimal number, like 12 or -3.5.",
+        "field": "number1"
+      }
+    },
+    {
+      "name": "plus sign",
+      "request": {
+        "number1": "+5",
+        "operation": "add",
+        "number2": "2"
+      },
+      "status": 400,
+      "response": {
+        "code": "INVALID_NUMBER",
+        "message": "First number must be a plain decimal number, like 12 or -3.5.",
+        "field": "number1"
+      }
+    },
+    {
+      "name": "surrounding spaces",
+      "request": {
+        "number1": " 5",
+        "operation": "add",
+        "number2": "2"
+      },
+      "status": 400,
+      "response": {
+        "code": "INVALID_NUMBER",
+        "message": "First number must be a plain decimal number, like 12 or -3.5.",
+        "field": "number1"
+      }
+    },
+    {
+      "name": "comma separator",
+      "request": {
+        "number1": "1,000",
+        "operation": "add",
+        "number2": "2"
+      },
+      "status": 400,
+      "response": {
+        "code": "INVALID_NUMBER",
+        "message": "First number must be a plain decimal number, like 12 or -3.5.",
+        "field": "number1"
+      }
+    },
+    {
+      "name": "invalid number2",
+      "request": {
+        "number1": "1",
+        "operation": "divide",
+        "number2": "x"
+      },
+      "status": 400,
+      "response": {
+        "code": "INVALID_NUMBER",
+        "message": "Second number must be a plain decimal number, like 12 or -3.5.",
+        "field": "number2"
+      }
+    },
+    {
+      "name": "number1 too long",
+      "request": {
+        "number1": "99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999",
+        "operation": "add",
+        "number2": "1"
+      },
+      "status": 400,
+      "response": {
+        "code": "NUMBER_TOO_LONG",
+        "message": "First number can have at most 1000 digits.",
+        "field": "number1"
+      }
+    },
+    {
+      "name": "number2 too long",
+      "request": {
+        "number1": "1",
+        "operation": "add",
+        "number2": "99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "status": 400,
+      "response": {
+        "code": "NUMBER_TOO_LONG",
+        "message": "Second number can have at most 1000 digits.",
+        "field": "number2"
+      }
+    },
+    {
+      "name": "division by zero",
+      "request": {
+        "number1": "5",
+        "operation": "divide",
+        "number2": "0"
+      },
+      "status": 422,
+      "response": {
+        "code": "DIVISION_BY_ZERO",
+        "message": "Division by zero is not permitted.",
+        "field": "number2"
+      }
+    },
+    {
+      "name": "division by zero written as decimal",
+      "request": {
+        "number1": "5",
+        "operation": "divide",
+        "number2": "0.000"
+      },
+      "status": 422,
+      "response": {
+        "code": "DIVISION_BY_ZERO",
+        "message": "Division by zero is not permitted.",
+        "field": "number2"
+      }
+    },
+    {
+      "name": "zero to a negative power",
+      "request": {
+        "number1": "0",
+        "operation": "power",
+        "number2": "-1"
+      },
+      "status": 422,
+      "response": {
+        "code": "DIVISION_BY_ZERO",
+        "message": "Division by zero is not permitted.",
+        "field": "number2"
+      }
+    },
+    {
+      "name": "square root of a negative number",
+      "request": {
+        "number1": "-4",
+        "operation": "sqrt"
+      },
+      "status": 422,
+      "response": {
+        "code": "NEGATIVE_SQUARE_ROOT",
+        "message": "Cannot take the square root of a negative number.",
+        "field": "number1"
+      }
+    },
+    {
+      "name": "fractional exponent",
+      "request": {
+        "number1": "2",
+        "operation": "power",
+        "number2": "0.5"
+      },
+      "status": 422,
+      "response": {
+        "code": "NON_INTEGER_EXPONENT",
+        "message": "The exponent must be a whole number.",
+        "field": "number2"
+      }
+    },
+    {
+      "name": "unknown operation",
+      "request": {
+        "number1": "1",
+        "operation": "modulo",
+        "number2": "2"
+      },
+      "status": 400,
+      "response": {
+        "code": "UNKNOWN_OPERATION",
+        "message": "Operation must be one of: add, subtract, multiply, divide, power, sqrt.",
+        "field": "operation"
+      },
+      "backendOnly": true
+    },
+    {
+      "name": "result too large",
+      "request": {
+        "number1": "9",
+        "operation": "power",
+        "number2": "999999999"
+      },
+      "status": 422,
+      "response": {
+        "code": "RESULT_TOO_LARGE",
+        "message": "The result would be too large (over 10000 digits)."
+      },
+      "backendOnly": true
+    }
+  ]
+}
