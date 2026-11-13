@@ -1,0 +1,39 @@
+# Development setup with source folders mounted into the containers:
+#   docker compose -f docker-compose.dev.yml up
+# Frontend changes reload in the browser instantly (Vite); backend changes
+# rebuild and restart the Go server automatically (Air).
+services:
+  backend:
+    image: golang:1.24-alpine
+    working_dir: /src
+    # Air rebuilds and restarts the server on every Go change. Its temp folder
+    # is relative to /src, so "../tmp/air" keeps it out of the mounted folder.
+    command: >
+      go run github.com/air-verse/air@v1.61.1
+      --build.cmd "go build -o /tmp/air/server ./cmd/server"
+      --build.bin "/tmp/air/server"
+      --tmp_dir "../tmp/air"
+    volumes:
+      - ./backend:/src
+      - go-build-cache:/root/.cache/go-build
+      - go-mod-cache:/go/pkg/mod
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    environment:
+      API_PROXY_TARGET: http://backend:8080
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      # Keep the container's node_modules separate from the host's.
+      - frontend-node-modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  go-build-cache:
+  go-mod-cache:
+  frontend-node-modules:

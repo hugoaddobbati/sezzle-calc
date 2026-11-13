@@ -1,0 +1,23 @@
+# Production-style setup: `docker compose up --build`, then open http://localhost:3000
+services:
+  backend:
+    build: ./backend
+    # No published port: the backend is only reachable through the frontend's /api proxy.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    depends_on:
+      backend:
+        condition: service_healthy
